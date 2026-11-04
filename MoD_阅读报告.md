@@ -33,27 +33,27 @@ MoD 不改变模型参数，而在每个解码步判断当前视觉注意力是�
 
 ### 第一步：找出模型真正关注的图像 token
 
-对所有 Transformer 层、所有注意力头取平均，使用输入序列最后一个 token 对图像 token 的注意力 $A^I$；再取注意力最高的 top-$\lambda$ 比例，得到被关注图像 token 索引 $\mathrm{IDX}^{I}_{\mathrm{att}}$。把其余图像 token 置零，得到 $v_{\mathrm{att}}$。（问"沙发上的动物"时，只保留猫所在 patch，遮住窗帘。）
+对所有 Transformer 层、所有注意力头取平均，使用输入序列最后一个 token 对图像 token 的注意力 $A^{I}$；再取注意力最高的 top-$\lambda$ 比例，得到被关注图像 token 索引 $\mathrm{IDX}^{I}_{\mathrm{att}}$。把其余图像 token 置零，得到 $v_{\mathrm{att}}$。（问"沙发上的动物"时，只保留猫所在 patch，遮住窗帘。）
 
 ### 第二步：计算两路输出分布的一致性
 
 分别用完整视觉 token $v$ 和被关注 token $v_{\mathrm{att}}$ 生成第 $t$ 步输出分布，并用 JS 散度衡量差异：
 
 $$
-d(v, v_{\mathrm{att}}) = D_{\mathrm{JS}}\left( p_\theta(y_t \mid v, x, y_{<t}) \parallel p_\theta(y_t \mid v_{\mathrm{att}}, x, y_{<t}) \right)
+d(v, v_{\mathrm{att}}) = D_{\mathrm{JS}}( p_\theta(y_t \mid v, x, y_{\lt t}) \parallel p_\theta(y_t \mid v_{\mathrm{att}}, x, y_{\lt t}) )
 $$
 
 $d$ 小表示"看全部图"和"只看关注区域"结论一致，注意力可靠；$d$ 大表示模型关注区域不能支持原回答，注意力可能错误。
 
 ### 第三步：按阈值自适应选择解码策略
 
-设一致性阈值 $\gamma$。当 $d \le \gamma$ 时采用互补解码，放大正确视觉信息；当 $d > \gamma$ 时采用对比解码，抑制错误注意力：
+设一致性阈值 $\gamma$。当 $d \le \gamma$ 时采用互补解码，放大正确视觉信息；当 $d \gt \gamma$ 时采用对比解码，抑制错误注意力：
 
 $$
 y_t \sim
 \begin{cases}
-\mathrm{softmax}\left[ \mathrm{logit}(v) + \alpha_1 \mathrm{logit}(v_{\mathrm{att}}) \right], & d \le \gamma, \\
-\mathrm{softmax}\left[ (1+\alpha_2)\mathrm{logit}(v) - \alpha_2 \mathrm{logit}(v_{\mathrm{att}}) \right], & d > \gamma.
+\mathrm{softmax}[\, \mathrm{logit}(v) + \alpha_1 \mathrm{logit}(v_{\mathrm{att}}) \,], & d \le \gamma, \\
+\mathrm{softmax}[\, (1+\alpha_2)\mathrm{logit}(v) - \alpha_2 \mathrm{logit}(v_{\mathrm{att}}) \,], & d \gt \gamma.
 \end{cases}
 $$
 
@@ -64,7 +64,7 @@ $\alpha_1$ 是互补强度，$\alpha_2$ 是对比强度。含义：看对了就�
 仅保留概率达到最大概率 $\beta$ 倍以上的 token：
 
 $$
-V_{\mathrm{head}}(y_{<t}) = \{ y_t \in V : p_\theta(y_t \mid v, x, y_{<t}) \ge \beta \max_w p_\theta(w \mid v, x, y_{<t}) \}
+V_{\mathrm{head}}(y_{\lt t}) = \lbrace\, y_t \in V : p_\theta(y_t \mid v, x, y_{\lt t}) \ge \beta \max_w p_\theta(w \mid v, x, y_{\lt t}) \,\rbrace
 $$
 
 这防止对比或互补放大后输出低概率、不合理的词。
@@ -72,7 +72,7 @@ $$
 | 状态 | 判据 | 使用策略 | 学习目的 | 例子 |
 |---|---|---|---|---|
 | 注意力正确 | $d \le \gamma$ | 互补解码 | 放大关键视觉证据 | 关注猫区域，放大"cat" |
-| 注意力错误 | $d > \gamma$ | 对比解码 | 抑制误导信息 | 关注窗帘却答"dog"，减去该分支 |
+| 注意力错误 | $d \gt \gamma$ | 对比解码 | 抑制误导信息 | 关注窗帘却答"dog"，减去该分支 |
 
 ## 五、小结
 
