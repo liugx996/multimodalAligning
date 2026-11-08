@@ -39,7 +39,7 @@
 先让原始 LVLM 对图像生成一句朴素描述 $\mathbf{c}^{\text{naive}}$，再用 CLIP 文本编码器 $E_t$ 编码为 $\mathbf{c}$。视觉编码器输出 $\mathbf{x}^{v}=E(\mathbf{v})$。计算视觉 token 与描述 token 的相似度矩阵 $\mathbf{M}$，取每个视觉 token 的最大相似度并归一化，得到权重 $\mathbf{W}^{v}$：
 
 $$
-\mathbf{W}^{v}=\operatorname{norm}(\max_j \mathbf{M}_{i,j}),\qquad
+\mathbf{W}^{v}=\text{norm}(\max_j \mathbf{M}_{i,j}),\qquad
 {\mathbf{x}^{v}}^{\prime}=\mathbf{x}^{v}+\mathbf{x}^{v}\odot\mathbf{W}^{v}.
 $$
 
@@ -70,7 +70,7 @@ $$
 用偏差削减后的视觉 token 得到正常 logits，用对抗视觉 token 得到幻觉倾向 logits，再做对比：
 
 $$
-p_{\text{shield}}(y_i)=\operatorname{softmax}\!\left[(1+\alpha)\operatorname{logit}(y_i\mid{\mathbf{x}^{v}}^{\prime\prime})-\alpha\operatorname{logit}(y_i\mid\overline{\mathbf{x}}^{v})\right].
+p_{\text{shield}}(y_i)=\text{softmax}\!\left[(1+\alpha)\text{logit}(y_i\mid{\mathbf{x}^{v}}^{\prime\prime})-\alpha\text{logit}(y_i\mid\overline{\mathbf{x}}^{v})\right].
 $$
 
 $\alpha$ 控制抑制强度。为避免生成不合理词，只保留概率达到最大值 $\beta$ 倍以上的 token：
